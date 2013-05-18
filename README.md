@@ -62,6 +62,11 @@ Example:
         The delimiter used when converting the tags to and from String format. Defaults to " "
 
 
+    * `@option [ :Symbol ] :group_by_field`
+
+        The Mongoid field to group by when RealTimeGroupBy aggregation is used.
+
+
     * `@option [ <various> ] :default, :as, :localize, etc.`
 
         Options for Mongoid #field method will be automatically passed
@@ -142,6 +147,7 @@ This lib presents the following aggregation strategies:
 
 * MapReduce
 * RealTime
+* RealTimeGroupBy
 
 The following document will automatically aggregate counts on all tag contexts.
 

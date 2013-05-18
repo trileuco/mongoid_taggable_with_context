@@ -33,6 +33,8 @@ module Mongoid::TaggableWithContext
     #
     # @option options [ String ] :separator
     #   The delimiter used when converting the tags to and from String format. Defaults to ' '
+    # @option options [ :Symbol ] :group_by_field
+    #   The Mongoid field to group by when RealTimeGroupBy aggregation is used.
     # @option options [ <various> ] :default, :as, :localize, etc.
     #   Options for Mongoid #field method will be automatically passed
     #   to the underlying Array field
@@ -62,11 +64,11 @@ module Mongoid::TaggableWithContext
       self.taggable_with_context_options[context]
     end
 
-    def tags_for(context, conditions={})
+    def tags_for(context, group_by=nil, conditions={})
       raise AggregationStrategyMissing
     end
 
-    def tags_with_weight_for(context, conditions={})
+    def tags_with_weight_for(context, group_by=nil, conditions={})
       raise AggregationStrategyMissing
     end
 
@@ -74,6 +76,9 @@ module Mongoid::TaggableWithContext
       self.taggable_with_context_options[context][:separator]
     end
 
+    def get_tag_group_by_field_for(context)
+      self.taggable_with_context_options[context][:group_by_field]
+    end
 
     # Find documents tagged with all tags passed as a parameter, given
     # as an Array or a String using the configured separator.
@@ -195,6 +200,7 @@ module Mongoid::TaggableWithContext
       create_class_weighted_tags_getter(context)
       create_class_separator_getter(context)
       create_class_tagged_with_getter(context)
+      create_class_group_by_getter(context)
       create_instance_tags_string_getter(context)
       create_instance_tags_setter(context)
     end
@@ -208,8 +214,8 @@ module Mongoid::TaggableWithContext
     def create_class_tags_getter(context)
       # retrieve all tags ever created for the model
       self.class.class_eval do
-        define_method context do
-          tags_for(context)
+        define_method context do |group_by = nil|
+          tags_for(context, group_by)
         end
       end
     end
@@ -222,8 +228,8 @@ module Mongoid::TaggableWithContext
     # @since 1.1.1
     def create_class_weighted_tags_getter(context)
       self.class.class_eval do
-        define_method :"#{context}_with_weight" do
-          tags_with_weight_for(context)
+        define_method :"#{context}_with_weight" do |group_by = nil|
+          tags_with_weight_for(context, group_by)
         end
       end
     end
@@ -252,6 +258,20 @@ module Mongoid::TaggableWithContext
       self.class.class_eval do
         define_method :"#{context}_tagged_with" do |tags|
           tagged_with(context, tags)
+        end
+      end
+    end
+
+    # Create the singleton getter method to retrieve the
+    # group_by field
+    #
+    # @param [ Symbol ] context The name of the tag context.
+    #
+    # @since 1.1.1
+    def create_class_group_by_getter(context)
+      self.class.class_eval do
+        define_method :"#{context}_group_by_field" do
+          get_tag_group_by_field_for(context)
         end
       end
     end
