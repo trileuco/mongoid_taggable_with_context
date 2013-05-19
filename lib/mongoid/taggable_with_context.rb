@@ -121,7 +121,7 @@ module Mongoid::TaggableWithContext
     #
     # @since 1.1.1
     def add_taggable(field, options)
-      validate_options(options)
+      validate_taggable_options(options)
 
       # db_field: the field name stored in the database
       options[:db_field] = field.to_sym
@@ -136,9 +136,9 @@ module Mongoid::TaggableWithContext
       # register / update settings
       self.taggable_with_context_options[options[:field]] = options
 
-      create_tags_mongoid_field(field, options)
-      create_tags_mongoid_index(context)
-      create_tags_accessors(context)
+      create_taggable_mongoid_field(field, options)
+      create_taggable_mongoid_index(context)
+      define_taggable_accessors(context)
     end
 
     # Validates the taggable options and raises errors if invalid options are detected.
@@ -146,7 +146,7 @@ module Mongoid::TaggableWithContext
     # @param [ Hash ] options The taggable options.
     #
     # @since 1.1.1
-    def validate_options(options)
+    def validate_taggable_options(options)
       if options[:field]
         raise <<-ERR
           taggable :field option has been removed as of version 1.1.1. Please use the
@@ -163,14 +163,17 @@ module Mongoid::TaggableWithContext
 
     # Creates the underlying Mongoid field for the tag context.
     #
-    # @param [ Symbol ] context The name of the tag context.
+    # @param [ Symbol ] name The name of the Mongoid field.
+    # @param [ Hash ] options Options for the Mongoid field.
     #
     # @since 1.1.1
-    def create_tags_mongoid_field(field, options)
-      field field, mongoid_field_options(options)
+    def create_taggable_mongoid_field(name, options)
+      field name, mongoid_field_options(options)
     end
 
-    # Prepares valid Mongoid option keys from the taggable options
+    # Prepares valid Mongoid option keys from the taggable options. Slices
+    # the taggable options to include only valid options for the Mongoid #field
+    # method, and coerces :type to Array.
     #
     # @param [ Hash ] :options The taggable options hash.
     # @return [ Hash ] A options hash for the Mongoid #field method.
@@ -182,11 +185,11 @@ module Mongoid::TaggableWithContext
 
     # Creates an index for the underlying Mongoid field.
     #
-    # @param [ Symbol ] context The name of the tag context.
+    # @param [ Symbol ] name The name or alias name of Mongoid field.
     #
     # @since 1.1.1
-    def create_tags_mongoid_index(context)
-      index({ context => 1 }, { background: true })
+    def create_taggable_mongoid_index(name)
+      index({ name => 1 }, { background: true })
     end
 
     # Defines all accessor methods for the taggable context at both
@@ -195,14 +198,14 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_tags_accessors(context)
-      create_class_tags_getter(context)
-      create_class_weighted_tags_getter(context)
-      create_class_separator_getter(context)
-      create_class_tagged_with_getter(context)
-      create_class_group_by_getter(context)
-      create_instance_tags_string_getter(context)
-      create_instance_tags_setter(context)
+    def define_taggable_accessors(context)
+      define_class_tags_getter(context)
+      define_class_weighted_tags_getter(context)
+      define_class_separator_getter(context)
+      define_class_tagged_with_getter(context)
+      define_class_group_by_getter(context)
+      define_instance_tags_string_getter(context)
+      define_instance_tags_setter(context)
     end
 
     # Create the singleton getter method to retrieve all tags
@@ -211,7 +214,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_class_tags_getter(context)
+    def define_class_tags_getter(context)
       # retrieve all tags ever created for the model
       self.class.class_eval do
         define_method context do |group_by = nil|
@@ -226,7 +229,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_class_weighted_tags_getter(context)
+    def define_class_weighted_tags_getter(context)
       self.class.class_eval do
         define_method :"#{context}_with_weight" do |group_by = nil|
           tags_with_weight_for(context, group_by)
@@ -240,7 +243,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_class_separator_getter(context)
+    def define_class_separator_getter(context)
       self.class.class_eval do
         define_method :"#{context}_separator" do
           get_tag_separator_for(context)
@@ -254,7 +257,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_class_tagged_with_getter(context)
+    def define_class_tagged_with_getter(context)
       self.class.class_eval do
         define_method :"#{context}_tagged_with" do |tags|
           tagged_with(context, tags)
@@ -268,7 +271,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_class_group_by_getter(context)
+    def define_class_group_by_getter(context)
       self.class.class_eval do
         define_method :"#{context}_group_by_field" do
           get_tag_group_by_field_for(context)
@@ -282,7 +285,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_instance_tags_setter(context)
+    def define_instance_tags_setter(context)
       generated_methods.module_eval do
         re_define_method("#{context}_with_taggable=") do |value|
           value = self.class.format_tags_for(context, value)
@@ -297,7 +300,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def create_instance_tags_string_getter(context)
+    def define_instance_tags_string_getter(context)
       generated_methods.module_eval do
         re_define_method("#{context}_string") do
           tags_string_for(context)
