@@ -26,8 +26,13 @@ Gem::Specification.new do |s|
     "lib/mongoid/taggable_with_context.rb",
     "lib/mongoid/taggable_with_context/aggregation_strategy/map_reduce.rb",
     "lib/mongoid/taggable_with_context/aggregation_strategy/real_time.rb",
-    "lib/mongoid/taggable_with_context/group_by/aggregation_strategy/real_time.rb",
-    "lib/mongoid/taggable_with_context/group_by/taggable_with_context.rb",
+    # fix Gem::InvalidSpecificationException, commenting group_by dir
+    # and by adding lib/mongoid/taggable_with_context/deprecations.rb
+    #
+    #"lib/mongoid/taggable_with_context/group_by/aggregation_strategy/real_time.rb",
+    #"lib/mongoid/taggable_with_context/group_by/taggable_with_context.rb",
+    #
+    "lib/mongoid/taggable_with_context/deprecations.rb",
     "lib/mongoid/taggable_with_context/version.rb",
     "lib/mongoid_taggable_with_context.rb",
     "mongoid_taggable_with_context.gemspec",
