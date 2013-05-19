@@ -2,7 +2,7 @@ source 'http://rubygems.org'
 
 gem 'mongoid', '>= 3.0.0'
 
-group :test do
+group :test, :development do
   gem 'rake'
   gem 'rspec'
   gem 'yard'
