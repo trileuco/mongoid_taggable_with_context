@@ -89,11 +89,11 @@ class Post
   field :content
 
   # default context is 'tags'.
-  # This creates #tags, #tags=, #tags_string instance methods
+  # This creates #tags, #tags=, #tag_string instance methods
   # separator is " " by default
   # #tags method returns an array of tags
   # #tags= methods accepts an array of tags or a separated string
-  # #tags_string method returns a separated string
+  # #tag_string method returns a separated string
   taggable
 
   # tagging for 'skills' context.

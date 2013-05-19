@@ -12,7 +12,7 @@ module Mongoid::TaggableWithContext
     self.taggable_with_context_options = {}
   end
 
-  def tags_string_for(context)
+  def tag_string_for(context)
     self.read_attribute(context).join(self.class.get_tag_separator_for(context))
   end
 
@@ -204,8 +204,8 @@ module Mongoid::TaggableWithContext
       define_class_separator_getter(context)
       define_class_tagged_with_getter(context)
       define_class_group_by_getter(context)
-      define_instance_tags_string_getter(context)
-      define_instance_tags_setter(context)
+      define_instance_tag_string_getter(context)
+      define_instance_tag_setter(context)
     end
 
     # Create the singleton getter method to retrieve all tags
@@ -285,7 +285,7 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def define_instance_tags_setter(context)
+    def define_instance_tag_setter(context)
       generated_methods.module_eval do
         re_define_method("#{context}_with_taggable=") do |value|
           value = self.class.format_tags_for(context, value)
@@ -300,10 +300,10 @@ module Mongoid::TaggableWithContext
     # @param [ Symbol ] context The name of the tag context.
     #
     # @since 1.1.1
-    def define_instance_tags_string_getter(context)
+    def define_instance_tag_string_getter(context)
       generated_methods.module_eval do
         re_define_method("#{context}_string") do
-          tags_string_for(context)
+          tag_string_for(context)
         end
       end
     end
