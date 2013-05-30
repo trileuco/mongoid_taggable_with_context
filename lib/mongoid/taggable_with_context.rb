@@ -100,6 +100,7 @@ module Mongoid::TaggableWithContext
     # Helper method to convert a a tag input value of unknown type
     # to a formatted array.
     def format_tags_for(context, value)
+      return nil if value.nil?
       # 0) Tags must be an array or a string
       raise InvalidTagsFormat unless value.is_a?(Array) || value.is_a?(String)
       # 1) convert String to Array
