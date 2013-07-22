@@ -17,7 +17,7 @@ module Mongoid::TaggableWithContext
   end
 
   def set_tag_string_for(context, value)
-    self.write_attribute(context, value).to_s.split(self.class.get_tag_separator_for(context))
+    self.write_attribute(context, self.class.format_tags_for(context, value))
   end
 
   module ClassMethods
