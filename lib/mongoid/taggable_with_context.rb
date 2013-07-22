@@ -13,7 +13,7 @@ module Mongoid::TaggableWithContext
   end
 
   def tag_string_for(context)
-    self.read_attribute(context).join(self.class.get_tag_separator_for(context))
+    self.read_attribute(context).join(self.class.get_tag_separator_for(context)) rescue ""
   end
 
   def set_tag_string_for(context, value)
