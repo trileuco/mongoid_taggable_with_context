@@ -6,7 +6,7 @@ module Mongoid::TaggableWithContext::AggregationStrategy
       set_callback :save,     :after, :update_tags_aggregations_on_save
       set_callback :destroy,  :after, :update_tags_aggregations_on_destroy
     end
-    
+
     module ClassMethods
       def tag_name_attribute
         "_id"
@@ -15,7 +15,7 @@ module Mongoid::TaggableWithContext::AggregationStrategy
       # Collection name for storing results of tag count aggregation
 
       def aggregation_database_collection_for(context)
-        (@aggregation_database_collection ||= {})[context] ||= Moped::Collection.new(self.collection.database, aggregation_collection_for(context))
+        (@aggregation_database_collection ||= {})[context] ||= Mongoid::Clients.default[aggregation_collection_for(context)]
       end
 
       def aggregation_collection_for(context)
@@ -74,7 +74,7 @@ module Mongoid::TaggableWithContext::AggregationStrategy
     def get_conditions(context, tag)
       {self.class.tag_name_attribute.to_sym => tag}
     end
-    
+
     def update_tags_aggregation(context, old_tags=[], new_tags=[])
       coll = self.class.aggregation_database_collection_for(context)
 
@@ -84,17 +84,17 @@ module Mongoid::TaggableWithContext::AggregationStrategy
       tags_removed    = old_tags - unchanged_tags
       tags_added      = new_tags - unchanged_tags
 
-      
+
       tags_removed.each do |tag|
-        coll.find(get_conditions(context, tag)).upsert({'$inc' => {value: -1}})
+        coll.update_many(get_conditions(context, tag), {'$inc' => {value: -1}}, { upsert: true})
       end
       tags_added.each do |tag|
-        coll.find(get_conditions(context, tag)).upsert({'$inc' => {value: 1}})
+        coll.update_many(get_conditions(context, tag), {'$inc' => {value: 1}}, { upsert: true})
       end
       #coll.find({_id: {"$in" => tags_removed}}).update({'$inc' => {:value => -1}}, [:upsert])
       #coll.find({_id: {"$in" => tags_added}}).update({'$inc' => {:value => 1}}, [:upsert])
     end
-    
+
     def update_tags_aggregations_on_save
       indifferent_changes = HashWithIndifferentAccess.new changes
       self.class.tag_database_fields.each do |field|
@@ -104,13 +104,13 @@ module Mongoid::TaggableWithContext::AggregationStrategy
         update_tags_aggregation(field, old_tags, new_tags)
       end
     end
-    
+
     def update_tags_aggregations_on_destroy
       self.class.tag_database_fields.each do |field|
         old_tags = send field
         new_tags = []
         update_tags_aggregation(field, old_tags, new_tags)
-      end      
+      end
     end
   end
 end

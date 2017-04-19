@@ -3,7 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + '/spec_helper')
 class MyModel
   include Mongoid::Document
   include Mongoid::TaggableWithContext
-    
+
   taggable
   taggable :artists
   taggable :albums, default: []
@@ -13,7 +13,8 @@ class M1
   include Mongoid::Document
   include Mongoid::TaggableWithContext
   include Mongoid::TaggableWithContext::AggregationStrategy::MapReduce
-  
+
+  field :user
   taggable
   taggable :a, as: :artists
 end
@@ -22,7 +23,8 @@ class M2
   include Mongoid::Document
   include Mongoid::TaggableWithContext
   include Mongoid::TaggableWithContext::AggregationStrategy::RealTime
-  
+
+  field :user
   taggable
   taggable :artists
 end
@@ -62,7 +64,7 @@ describe Mongoid::TaggableWithContext do
       @m.tags = "some new tag"
       @m.tags.should == %w[some new tag]
     end
-    
+
     it "should set artists tags from string" do
       @m.artists = "some new tag"
       @m.artists.should == %w[some new tag]
@@ -78,7 +80,7 @@ describe Mongoid::TaggableWithContext do
       @m.albums_string = tags
       @m.albums.should == tags.split(' ')
     end
-    
+
     it "should retrieve artists string" do
       @m.artists = %w[some new tags]
       @m.artists_string.should == "some new tags"
@@ -88,17 +90,17 @@ describe Mongoid::TaggableWithContext do
       @m.tags = "now   with   some spaces   in places "
       @m.tags.should == %w[now with some spaces in places]
     end
-    
+
     it "should remove repeated tags from string" do
       @m.tags = "some new tags some new tags"
       @m.tags.should == %w[some new tags]
     end
-    
+
     it "should remove repeated tags from array" do
       @m.tags = %w[some new tags some new tags]
       @m.tags.should == %w[some new tags]
     end
-    
+
     it "should remove nil tags from array" do
       @m.tags = ["some", nil, "new", nil, "tags"]
       @m.tags.should == %w[some new tags]
@@ -114,12 +116,12 @@ describe Mongoid::TaggableWithContext do
     before :each do
       @m = MyModel.new
     end
-    
+
     it "should remove repeated tags from array" do
       @m.tags = %w[some new tags some new tags]
       @m.tags.should == %w[some new tags]
     end
-    
+
     it "should remove nil tags from array" do
       @m.tags = ["some", nil, "new", nil, "tags"]
       @m.tags.should == %w[some new tags]
@@ -137,24 +139,24 @@ describe Mongoid::TaggableWithContext do
       @m2 = MyModel.create!(tags: "juice food bee zip", artists: "grant andrew andy")
       @m3 = MyModel.create!(tags: "honey strip food", artists: "mandy aaron andy")
     end
-    
+
     it "should retrieve a list of documents" do
       (MyModel.tags_tagged_with("food").to_a - [@m1, @m2, @m3]).should be_empty
       (MyModel.artists_tagged_with("aaron").to_a - [@m1, @m3]).should be_empty
     end
   end
-  
+
   context "no aggregation" do
     it "should raise AggregationStrategyMissing exception when retreiving tags" do
       lambda{ MyModel.tags }.should raise_error(Mongoid::TaggableWithContext::AggregationStrategyMissing)
     end
-    
+
     it "should raise AggregationStrategyMissing exception when retreiving tags with weights" do
       lambda{ MyModel.tags_with_weight }.should raise_error(Mongoid::TaggableWithContext::AggregationStrategyMissing)
     end
-    
+
   end
-  
+
   shared_examples_for "aggregation" do
     context "retrieving index" do
       context "when there's no tags'" do
@@ -173,7 +175,7 @@ describe Mongoid::TaggableWithContext do
           klass.create!(user: "user1", tags: "juice food bee zip", artists: "grant andrew andy")
           klass.create!(user: "user2", tags: "honey strip food", artists: "mandy aaron andy")
         end
-      
+
         it "should retrieve the list of all saved tags distinct and ordered" do
           klass.tags.should == %w[ant bee food honey juice strip zip]
           klass.artists.should == %w[aaron andrew andy grant greg jeff mandy]
@@ -189,7 +191,7 @@ describe Mongoid::TaggableWithContext do
             ['strip', 1],
             ['zip', 1]
           ]
-        
+
           klass.artists_with_weight.should == [
             ['aaron', 2],
             ['andrew', 1],
@@ -201,14 +203,14 @@ describe Mongoid::TaggableWithContext do
           ]
         end
       end
-      
+
       context "on new then change attributes directly" do
         before :each do
           m = klass.new
           m.tags = "food ant bee"
           m.artists = "jeff greg mandy aaron andy"
           m.save!
-          
+
           m = klass.new
           m.tags = "juice food bee zip"
           m.artists = "grant andrew andy"
@@ -219,7 +221,7 @@ describe Mongoid::TaggableWithContext do
           m.artists = "mandy aaron andy"
           m.save!
         end
-      
+
         it "should retrieve the list of all saved tags distinct and ordered" do
           klass.tags.should == %w[ant bee food honey juice strip zip]
           klass.artists.should == %w[aaron andrew andy grant greg jeff mandy]
@@ -235,7 +237,7 @@ describe Mongoid::TaggableWithContext do
             ['strip', 1],
             ['zip', 1]
           ]
-        
+
           klass.artists_with_weight.should == [
             ['aaron', 2],
             ['andrew', 1],
@@ -247,20 +249,20 @@ describe Mongoid::TaggableWithContext do
           ]
         end
       end
-      
+
       context "on create then update" do
         before :each do
           m1 = klass.create!(user: "user1", tags: "food ant bee", artists: "jeff greg mandy aaron andy")
           m2 = klass.create!(user: "user1", tags: "juice food bee zip", artists: "grant andrew andy")
           m3 = klass.create!(user: "user2", tags: "honey strip food", artists: "mandy aaron andy")
-          
+
           m1.tags = m1.tags + %w[honey strip shoe]
           m1.save!
-          
+
           m3.artists = m3.artists + %w[grant greg gory]
           m3.save!
         end
-      
+
         it "should retrieve the list of all saved tags distinct and ordered" do
           klass.tags.should == %w[ant bee food honey juice shoe strip zip]
           klass.artists.should == %w[aaron andrew andy gory grant greg jeff mandy]
@@ -277,7 +279,7 @@ describe Mongoid::TaggableWithContext do
             ['strip', 2],
             ['zip', 1]
           ]
-        
+
           klass.artists_with_weight.should == [
             ['aaron', 2],
             ['andrew', 1],
@@ -296,16 +298,16 @@ describe Mongoid::TaggableWithContext do
           m1 = klass.create!(user: "user1", tags: "food ant bee", artists: "jeff greg mandy aaron andy")
           m2 = klass.create!(user: "user1", tags: "juice food bee zip", artists: "grant andrew andy")
           m3 = klass.create!(user: "user2", tags: "honey strip food", artists: "mandy aaron andy")
-          
+
           m1.tags = m1.tags + %w[honey strip shoe] - %w[food]
           m1.save!
-          
+
           m3.artists = m3.artists + %w[grant greg gory] - %w[andy]
           m3.save!
-          
+
           m2.destroy
         end
-      
+
         it "should retrieve the list of all saved tags distinct and ordered" do
           klass.tags.should == %w[ant bee food honey shoe strip]
           klass.artists.should == %w[aaron andy gory grant greg jeff mandy]
@@ -320,7 +322,7 @@ describe Mongoid::TaggableWithContext do
             ['shoe', 1],
             ['strip', 2]
           ]
-        
+
           klass.artists_with_weight.should == [
             ['aaron', 2],
             ['andy', 1],
@@ -342,12 +344,12 @@ describe Mongoid::TaggableWithContext do
     it "should generate the tags aggregation collection name correctly" do
       klass.aggregation_collection_for(:tags).should == "m1s_tags_aggregation"
     end
-    
+
     it "should generate the artists aggregation collection name correctly" do
       klass.aggregation_collection_for(:artists).should == "m1s_artists_aggregation"
     end
   end
-  
+
   context "realtime aggregation" do
     let(:klass) { M2 }
     it_should_behave_like "aggregation"
@@ -355,7 +357,7 @@ describe Mongoid::TaggableWithContext do
     it "should generate the tags aggregation collection name correctly" do
       klass.aggregation_collection_for(:tags).should == "m2s_tags_aggregation"
     end
-    
+
     it "should generate the artists aggregation collection name correctly" do
       klass.aggregation_collection_for(:artists).should == "m2s_artists_aggregation"
     end
