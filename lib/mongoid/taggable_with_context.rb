@@ -101,6 +101,23 @@ module Mongoid::TaggableWithContext
       all_in(field => tags)
     end
 
+    # Find documents not tagged with any tags passed as a parameter, given
+    # as an Array or a String using the configured separator.
+    #
+    # @example Find matching none tags in an Array.
+    #   Article.not_tagged_with(['ruby', 'mongodb'])
+    # @example Find matching none tags in a String.
+    #   Article.not_tagged_with('ruby, mongodb')
+    #
+    # @param [ String ] :field The field name of the tag.
+    # @param [ Array<String, Symbol>, String ] :tags Tags to not match.
+    # @return [ Criteria ] A new criteria.
+    def not_tagged_with(context, tags)
+      tags = format_tags_for(context, tags)
+      field = tag_options_for(context)[:field]
+      not_in(field => tags)
+    end
+
     # Helper method to convert a a tag input value of unknown type
     # to a formatted array.
     def format_tags_for(context, value)
